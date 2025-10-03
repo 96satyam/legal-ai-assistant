@@ -10,3 +10,7 @@ sqlalchemy==2.0.23
 pydantic==2.5.0
 python-multipart==0.0.6
 python-jose[cryptography]==3.3.0
+spacy==3.7.2
+lxml==5.1.0
+spacy[lookups]
+python-dotenv==0.21.1
