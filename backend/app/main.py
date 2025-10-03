@@ -1,10 +1,14 @@
 from fastapi import FastAPI
+from app.core.database import engine, Base
+# Import your models so SQLAlchemy knows about them
+from app.models import user, document, analysis
 
-# Create an instance of the FastAPI class
+# This command tells SQLAlchemy to create all tables based on the models it finds
+# that inherit from our "Base" class.
+Base.metadata.create_all(bind=engine)
+
 app = FastAPI(title="Agentic AI Legal Assistant")
 
-# Define a "route" using a decorator
-# This tells FastAPI that the function below handles GET requests to the "/" URL
 @app.get("/", tags=["Health Check"])
 def read_root():
     """
