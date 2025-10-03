@@ -1,15 +1,11 @@
 from langgraph.graph import StateGraph, END
 from .state import AgentState
-
+from .parser_agent import document_parser_node
 # --- DEFINE AGENT NODES (Placeholders for now) ---
 # In a real system, each of these would be a call to a dedicated agent class.
 # For now, they are simple functions that print a message.
 
-def document_parser_node(state: AgentState):
-    print("---Step 1: PARSING DOCUMENT---")
-    # In the future, this will call the real parser agent
-    state['current_step'] = "Parsing Complete"
-    return state
+
 
 def risk_assessment_node(state: AgentState):
     print("---Step 2: ASSESSING RISKS---")
@@ -29,7 +25,7 @@ def compliance_node(state: AgentState):
 workflow = StateGraph(AgentState)
 
 # 2. Add the nodes to the graph
-workflow.add_node("parser", document_parser_node)
+workflow.add_node("parser", document_parser_node) 
 workflow.add_node("risk_assessor", risk_assessment_node)
 workflow.add_node("compliance_checker", compliance_node)
 
