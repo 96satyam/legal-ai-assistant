@@ -6,8 +6,10 @@ class AgentState(TypedDict):
     This TypedDict represents the shared state of our agent system.
     It's the central "project folder" that all agents read from and write to.
     """
+    task_type: str
     document_id: str
     document_text: str
+    document_text_2: str
 
     # Data extracted by the Parser Agent
     parsed_clauses: List[Dict]

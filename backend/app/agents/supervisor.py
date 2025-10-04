@@ -2,12 +2,22 @@ from langgraph.graph import StateGraph, END
 from .state import AgentState
 from .parser_agent import document_parser_node
 from .risk_agent import risk_assessment_node
+from .comparison_agent import comparison_node
 # --- DEFINE AGENT NODES (Placeholders for now) ---
 # In a real system, each of these would be a call to a dedicated agent class.
 # For now, they are simple functions that print a message.
 
-
-
+def route_task(state: AgentState):
+    """The 'traffic cop' that directs the workflow."""
+    task_type = state.get("task_type")
+    print(f"---ROUTING: Task type is '{task_type}'---")
+    if task_type == "analyze":
+        return "parser"
+    elif task_type == "compare":
+        return "comparison"
+    else:
+        # A fallback to end the graph if the task type is unknown
+        return END
 
 
 def compliance_node(state: AgentState):
@@ -15,23 +25,29 @@ def compliance_node(state: AgentState):
     state['current_step'] = "Compliance Check Complete"
     return state
 
-# --- BUILD THE GRAPH ---
+# --- BUILD THE GRAPH (Corrected Version) ---
 
-# 1. Initialize the StateGraph with our AgentState
 workflow = StateGraph(AgentState)
 
-# 2. Add the nodes to the graph
-workflow.add_node("parser", document_parser_node) 
+# Add all the action nodes
+workflow.add_node("parser", document_parser_node)
 workflow.add_node("risk_assessor", risk_assessment_node)
-workflow.add_node("compliance_checker", compliance_node)
+workflow.add_node("comparison", comparison_node)
 
-# 3. Define the connections (edges) between the nodes
-# This defines the linear flow of our analysis.
-workflow.set_entry_point("parser")
+# This is the correct way to start with a routing decision.
+# We are NOT adding 'router' as a node.
+workflow.set_conditional_entry_point(
+    route_task,
+    {
+        "parser": "parser",
+        "comparison": "comparison",
+        END: END
+    }
+)
+
+# Define the rest of the flow
 workflow.add_edge("parser", "risk_assessor")
-workflow.add_edge("risk_assessor", "compliance_checker")
-workflow.add_edge("compliance_checker", END) # The END node signifies the workflow is finished
+workflow.add_edge("risk_assessor", END)
+workflow.add_edge("comparison", END)
 
-# 4. Compile the graph into a runnable object
-# This is the final "app" we can call to run our workflow.
 graph_app = workflow.compile()

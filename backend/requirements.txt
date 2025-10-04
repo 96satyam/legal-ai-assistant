@@ -17,3 +17,4 @@ python-dotenv
 langchain_openai
 langchain-community
 langchain-chroma
+scikit-learn
