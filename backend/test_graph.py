@@ -30,28 +30,33 @@ def main_analyze():
         "task_type": "analyze",
         "document_id": "doc_analyze_123",
         "document_text": doc_text,
-        # ... initialize all other fields to be empty/None
+        # Initialize all other fields to be empty/None
         "document_text_2": "", "parsed_clauses": [], "clause_categories": {},
         "identified_risks": [], "missing_clauses": [], "comparison_result": None,
-        "compliance_results": [], "qa_messages": [], "current_step": "start", "error": ""
+        "compliance_results": [], "qa_messages": [], "final_report": "", 
+        "current_step": "start", "error": ""
     }
-
+    
     final_state = None
+    # The stream method will now show the aggregator node in action
     for step in graph_app.stream(initial_state):
         node_name = list(step.keys())[0]
         state_after_step = list(step.values())[0]
         print(f"\n--- After Node: {node_name} ---")
         final_state = state_after_step
-
-    print("\n--- Graph Workflow Finished ---")
-
-    if final_state and final_state.get("compliance_results"):
-        print("\n\n--- COMPLIANCE RESULTS ---")
-        for result in final_state["compliance_results"]:
-            print(f"  - Requirement: {result.requirement}")
-            print(f"    Compliant: {'Yes' if result.is_compliant else 'No'}")
-            print(f"    Severity: {result.severity}")
-            print(f"    Assessment: {result.assessment}\n")
+            
+    print("\n" + "="*50)
+    print("--- GRAPH WORKFLOW FINISHED ---")
+    print("="*50 + "\n")
+    
+    # Print the final, aggregated report
+    if final_state and final_state.get("final_report"):
+        print("\n\n--- FINAL EXECUTIVE SUMMARY ---")
+        print(final_state["final_report"])
+    else:
+        print("\n\n--- No final report was generated. ---")
+        if final_state and final_state.get("error"):
+            print("Error:", final_state["error"])
 
 if __name__ == "__main__":
     main_analyze()

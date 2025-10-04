@@ -23,6 +23,7 @@ class AgentState(TypedDict):
     comparison_result: Dict
     compliance_results: List[Dict] 
     qa_messages: List[Dict] # For conversational Q&A
+    final_report: str
 
     # Workflow management
     current_step: str
