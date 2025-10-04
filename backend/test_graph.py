@@ -22,31 +22,36 @@ def run_conversation_turn(state: AgentState):
         final_state = state_after_step
     return final_state
 
-def main():
-    print("\n--- Starting RAG Workflow ---")
-    
-    # Turn 1: Initial Question
-    print("\n--- Turn 1: Asking the first question... ---")
+def main_analyze():
+    print("--- Starting Full Analysis Workflow ---")
+    doc_text = "\n".join([p['text'] for p in parse_document("../data/contracts/sample1.docx")])
+
     initial_state = {
-        "task_type": "qa",
-        "document_id": "doc123",
-        "qa_messages": [{"role": "human", "content": "How long is the confidentiality period?"}],
-        # Initialize other fields as empty
-        "document_text": "", "document_text_2": "", "parsed_clauses": [], 
-        "clause_categories": {}, "identified_risks": [], "missing_clauses": [],
-        "comparison_result": None, "current_step": "", "error": ""
+        "task_type": "analyze",
+        "document_id": "doc_analyze_123",
+        "document_text": doc_text,
+        # ... initialize all other fields to be empty/None
+        "document_text_2": "", "parsed_clauses": [], "clause_categories": {},
+        "identified_risks": [], "missing_clauses": [], "comparison_result": None,
+        "compliance_results": [], "qa_messages": [], "current_step": "start", "error": ""
     }
-    state_after_turn1 = run_conversation_turn(initial_state)
-    print("\nAI Response:", state_after_turn1["qa_messages"][-1]["content"])
-    
-    # Turn 2: Follow-up Question
-    print("\n\n--- Turn 2: Asking a follow-up question... ---")
-    # The new state is the final state from the previous turn, with a new question appended.
-    state_for_turn2 = state_after_turn1
-    state_for_turn2["qa_messages"].append({"role": "human", "content": "What are the exclusions to this?"})
-    
-    state_after_turn2 = run_conversation_turn(state_for_turn2)
-    print("\nAI Response:", state_after_turn2["qa_messages"][-1]["content"])
+
+    final_state = None
+    for step in graph_app.stream(initial_state):
+        node_name = list(step.keys())[0]
+        state_after_step = list(step.values())[0]
+        print(f"\n--- After Node: {node_name} ---")
+        final_state = state_after_step
+
+    print("\n--- Graph Workflow Finished ---")
+
+    if final_state and final_state.get("compliance_results"):
+        print("\n\n--- COMPLIANCE RESULTS ---")
+        for result in final_state["compliance_results"]:
+            print(f"  - Requirement: {result.requirement}")
+            print(f"    Compliant: {'Yes' if result.is_compliant else 'No'}")
+            print(f"    Severity: {result.severity}")
+            print(f"    Assessment: {result.assessment}\n")
 
 if __name__ == "__main__":
-    main()
+    main_analyze()

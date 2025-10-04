@@ -21,6 +21,7 @@ class AgentState(TypedDict):
     # Data for other agents we will build later
     missing_clauses: List[str]
     comparison_result: Dict
+    compliance_results: List[Dict] 
     qa_messages: List[Dict] # For conversational Q&A
 
     # Workflow management
