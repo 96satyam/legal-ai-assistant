@@ -38,19 +38,32 @@ initial_input: AgentState = {
 def main():
     print("\n--- Starting Graph Workflow ---")
     
+    final_state = None # Variable to store the final state
     # The `stream` method runs the graph and yields the state after each step
     for step in graph_app.stream(initial_input):
-        # The key of the dictionary is the name of the node that just finished
         node_name = list(step.keys())[0]
         state_after_step = list(step.values())[0]
         
         print(f"\n--- After Node: {node_name} ---")
-        # Let's print the parsed clauses after the parser runs
         if node_name == "parser":
             print(f"   - Clauses Parsed: {len(state_after_step.get('parsed_clauses', []))}")
         print(f"Current Step: {state_after_step['current_step']}")
+        
+        final_state = state_after_step # Keep track of the latest state
 
     print("\n--- Graph Workflow Finished ---")
+    
+    # --- Print Final Results ---
+    if final_state and final_state.get("identified_risks"):
+        print("\n\n--- DETECTED RISKS ---")
+        for risk in final_state["identified_risks"]:
+            print(f"  - Level: {risk.risk_level}")
+            print(f"    Clause: {risk.clause_text[:100]}...")
+            print(f"    Description: {risk.description}")
+            print(f"    Mitigation: {risk.mitigation}\n")
+    else:
+        print("\n\n--- No risks were detected. ---")
+
 
 if __name__ == "__main__":
     main()

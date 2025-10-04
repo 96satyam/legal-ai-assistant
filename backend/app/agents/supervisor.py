@@ -1,21 +1,17 @@
 from langgraph.graph import StateGraph, END
 from .state import AgentState
 from .parser_agent import document_parser_node
+from .risk_agent import risk_assessment_node
 # --- DEFINE AGENT NODES (Placeholders for now) ---
 # In a real system, each of these would be a call to a dedicated agent class.
 # For now, they are simple functions that print a message.
 
 
 
-def risk_assessment_node(state: AgentState):
-    print("---Step 2: ASSESSING RISKS---")
-    # In the future, this will call the real risk agent
-    state['current_step'] = "Risk Assessment Complete"
-    return state
+
 
 def compliance_node(state: AgentState):
-    print("---Step 3: CHECKING COMPLIANCE---")
-    # In the future, this will call the real compliance agent
+    print("---NODE: Compliance Checker (Placeholder)---")
     state['current_step'] = "Compliance Check Complete"
     return state
 
