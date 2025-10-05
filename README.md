@@ -535,7 +535,7 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 For issues, questions, or feature requests, please use:
 
 -   **GitHub Issues**: [https://github.com/yourusername/legal-ai-assistant/issues](https://github.com/yourusername/legal-ai-assistant/issues)
--   **Documentation**: (If a separate wiki or documentation site is created, link it here)
+  
 
 ## Acknowledgments
 
