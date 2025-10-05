@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import engine, Base
 import app.models # Import the models package
-from app.api import documents
 
+from app.api import documents, analysis, qa
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Agentic AI Legal Assistant")
@@ -18,15 +18,20 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "https://localhost:3000",  # Your Word add-in
+        "http://localhost:3000",
+    ],
     allow_credentials=True,
-    allow_methods=["*"], # Allow all methods (GET, POST, etc.)
-    allow_headers=["*"], # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 # --- End CORS Configuration ---
+app.include_router(analysis.router, prefix="/api")
+app.include_router(qa.router, prefix="/api")
 
 app.include_router(documents.router)
-
+app.include_router(analysis.router)
 @app.get("/", tags=["Health Check"])
 def read_root():
     return {"status": "ok", "message": "Welcome to the AI Legal Assistant API!"}

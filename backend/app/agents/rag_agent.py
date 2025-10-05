@@ -1,94 +1,96 @@
+# in app/agents/rag_agent.py
+import logging
 from langchain_openai import ChatOpenAI
-# Corrected imports for chain helpers
-from langchain.chains import create_history_aware_retriever, create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-# The rest of your imports
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_community.chat_message_histories import ChatMessageHistory
-
-from app.core.config import settings
-from app.utils.embeddings import vector_store
 from .state import AgentState
+from app.core.config import settings
 
-# --- 1. SETUP THE CORE RAG COMPONENTS ---
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Initialize the LLM we'll use for answering
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, api_key=settings.OPENAI_API_KEY)
 
-# The Retriever is the component that fetches relevant documents from our vector store
-retriever = vector_store.as_retriever(search_kwargs={"k": 5})
-
-# This is the prompt for the main Q&A part of the chain.
-# It instructs the LLM to answer based ONLY on the provided context.
-qa_prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", "You are a helpful legal assistant. Answer the user's questions based on the context provided. If you can't answer the question with the given context, say 'I am not sure.'\n\nContext:\n{context}"),
-        ("human", "{input}"),
-    ]
-)
-
-# This chain takes a question and the retrieved documents and generates an answer.
-question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
-
-
-# --- 2. ADD CONVERSATIONAL MEMORY ---
-
-# This prompt helps the LLM rewrite a follow-up question into a self-contained one
-history_aware_prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", "Given the chat history and a follow-up question, rephrase the question to be a standalone question."),
-        ("placeholder", "{chat_history}"),
-        ("human", "{input}"),
-    ]
-)
-
-# This chain takes the history and a new question, and creates a new, standalone question
-history_aware_retriever_chain = create_history_aware_retriever(
-    llm, retriever, history_aware_prompt
-)
-
-# This is our final, complete RAG chain.
-# It will first rewrite the question based on history, then retrieve documents,
-# and finally, generate an answer.
-rag_chain = create_retrieval_chain(history_aware_retriever_chain, question_answer_chain)
-
-# This is a dictionary that will act as our in-memory session history
-session_histories = {}
-
-def get_session_history(session_id: str):
-    """Gets the chat history for a given session, creating one if it doesn't exist."""
-    if session_id not in session_histories:
-        session_histories[session_id] = ChatMessageHistory()
-    return session_histories[session_id]
-
-# Finally, we wrap our RAG chain in a special runnable that manages the history
-conversational_rag_chain = RunnableWithMessageHistory(
-    rag_chain,
-    get_session_history,
-    input_messages_key="input",
-    history_messages_key="chat_history",
-    output_messages_key="answer",
-)
-
-# --- 3. DEFINE THE LANGGRAPH NODE ---
 def rag_node(state: AgentState) -> AgentState:
-    print("---NODE: RAG Q&A---")
+    """
+    RAG node for Q&A functionality.
+    Answers questions based on the document text.
+    """
+    logger.info("---NODE: RAG Q&A---")
+    
+    # Get the last user question
+    qa_messages = state.get("qa_messages", [])
+    if not qa_messages:
+        logger.warning("No Q&A messages found")
+        state["error"] = "No question provided"
+        return state
+    
+    # Find the last user message
+    question = None
+    for msg in reversed(qa_messages):
+        if msg.get("role") == "user":
+            question = msg.get("content")
+            break
+    
+    if not question:
+        logger.warning("No user question found in messages")
+        state["error"] = "No question found"
+        return state
+    
+    document_text = state.get("document_text", "")
+    
+    if not document_text:
+        logger.warning("No document text available for Q&A")
+        state["error"] = "No document text available"
+        return state
+    
+    logger.info(f"Processing question: {question[:100]}...")
+    
+    # Create Q&A prompt
+    qa_prompt = ChatPromptTemplate.from_template(
+        """You are a legal assistant helping to analyze a contract. 
+        
+Based on the following contract text, answer the user's question accurately and concisely.
 
-    # Get the latest question from the state
-    question = state["qa_messages"][-1]["content"]
+Contract Text:
+{document_text}
 
-    # We use the document_id as the session_id for the chat history
-    session_id = state["document_id"]
+Question: {question}
 
-    # Invoke the conversational chain
-    result = conversational_rag_chain.invoke(
-        {"input": question},
-        config={"configurable": {"session_id": session_id}}
+Instructions:
+1. Provide a clear, direct answer based only on the contract text
+2. Quote relevant sections when possible
+3. If the answer isn't in the contract, say so clearly
+4. Keep your answer focused and professional
+
+Answer:"""
     )
-
-    # Append the AI's answer to the message list
-    state["qa_messages"].append({"role": "ai", "content": result["answer"]})
-
-    print("---RAG Q&A COMPLETE---")
+    
+    try:
+        # Get answer from LLM
+        response = (qa_prompt | llm).invoke({
+            "document_text": document_text[:4000],  # Limit to avoid token limits
+            "question": question
+        })
+        
+        answer = response.content
+        
+        # Add assistant response to messages
+        state["qa_messages"].append({
+            "role": "assistant",
+            "content": answer,
+            "citations": []  # Can be enhanced to extract citations
+        })
+        
+        logger.info("Q&A response generated successfully")
+        state["current_step"] = "qa_complete"
+        
+    except Exception as e:
+        logger.error(f"Q&A processing failed: {e}")
+        state["error"] = f"Q&A failed: {str(e)}"
+        state["qa_messages"].append({
+            "role": "assistant",
+            "content": f"I encountered an error processing your question: {str(e)}",
+            "citations": []
+        })
+    
     return state

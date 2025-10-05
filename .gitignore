@@ -205,3 +205,47 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build output
+dist/
+build/
+
+# Certificates (IMPORTANT: Never commit certificates)
+*.crt
+*.key
+*.pem
+.office-addin-dev-certs/
+
+# Cache
+.cache/
+.webpack/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Temporary files
+*.tmp
+.tmp/
+
+# Office Add-in specific
+.office-addin-dev-settings.json

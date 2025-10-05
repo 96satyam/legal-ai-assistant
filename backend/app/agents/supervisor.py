@@ -96,6 +96,7 @@ def route_task(state: AgentState):
     elif task_type == "qa":
         return "rag"
     else:
+        logging.warning(f"Unknown task type '{task_type}', ending workflow.")
         return END
 
 # --- 5. BUILD THE FINAL, ROBUST GRAPH ---
@@ -106,8 +107,8 @@ workflow = StateGraph(AgentState)
 workflow.add_node("parser", document_parser_node)
 workflow.add_node("risk_assessor", risk_assessment_node)
 workflow.add_node("compliance_checker", compliance_node)
-workflow.add_node("aggregator", aggregator_node) # New node
-workflow.add_node("error", error_node)           # New node
+workflow.add_node("aggregator", aggregator_node)
+workflow.add_node("error", error_node)
 workflow.add_node("comparison", comparison_node)
 workflow.add_node("rag", rag_node)
 
@@ -124,13 +125,20 @@ workflow.set_conditional_entry_point(
 )
 
 # Define all the connections
+# Analysis workflow: parser -> risk_assessor -> compliance_checker -> aggregator -> END
 workflow.add_edge("parser", "risk_assessor")
 workflow.add_edge("risk_assessor", "compliance_checker")
-workflow.add_edge("compliance_checker", "aggregator") # <-- New edge
-workflow.add_edge("aggregator", END)                  # <-- New edge
+workflow.add_edge("compliance_checker", "aggregator")
+workflow.add_edge("aggregator", END)
+
+# Comparison workflow: comparison -> END
 workflow.add_edge("comparison", END)
+
+# Q&A workflow: rag -> END
 workflow.add_edge("rag", END)
-workflow.add_edge("error", END) # Errors lead to the end
+
+# Error workflow: error -> END
+workflow.add_edge("error", END)
 
 # Compile the final graph
 graph_app = workflow.compile()
